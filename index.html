@@ -23,6 +23,7 @@
       --today-border: #f57c00;
       --info-bg: #fff;
       --shadow: rgba(0,0,0,0.1);
+      --highlight-bg: #c8e6c9;
     }
 
     .dark {
@@ -34,6 +35,7 @@
       --today-border: #ffa000;
       --info-bg: #2c2c2c;
       --shadow: rgba(255,255,255,0.1);
+      --highlight-bg: #388e3c;
     }
 
     body {
@@ -109,6 +111,9 @@
       font-weight: bold;
       border: 0.2vh solid var(--today-border);
       color: #000;
+    }
+    .highlight {
+      background-color: var(--highlight-bg);
     }
 
     .converter {
@@ -193,7 +198,7 @@
   }
   @media (orientation: portrait) {
     #yearContainer {
-      grid-template-columns: repeat(3, 1fr); /* 3 columns */
+      grid-template-columns: repeat(3, 1fr);
     }
   }
   </style>
@@ -218,7 +223,8 @@
   <div class="converter">
     <label id="convLabel" onclick="toggleConversion()" title="Click label to switch conversion direction.">Gregorian Date:</label>
     <input type="date" id="convInput" />
-    <button onclick="convertDate()">Convert</button>
+    <button onclick="convertDate()">⇆</button>
+    <button id="resetButton" onclick="resetToCurrentDate()" title="Reset" style="display: none;">⟳</button> <!-- Initially hidden -->
     <span id="convResult"></span>
     <span id="infoPopup" class="info-popup" style="display:none">Gilburd's Calendar has 12 months, alternating 30 and 31 days. December has 30 days unless leap year.</span>
   </div>
@@ -252,7 +258,7 @@
       return (month % 2 === 0) ? 31 : 30;
     }
     function getWeekLength(month, weekIndex, year) {
-      return 6; // Each week has 6 days
+      return 6;
     }
     function getGilburdDateFromGregorian(gDate) {
       const year = gDate.getFullYear();
@@ -315,8 +321,8 @@
               span30.className = "day30";
               span30.textContent = "30";
               const span31 = document.createElement("span");
-              span31.className = "day31";
               span31.textContent = "31";
+              span31.className = "day31";
               td.appendChild(span30);
               td.appendChild(span31);
               if (year === today.getFullYear() && month === todayGilburd.month) {
@@ -364,6 +370,7 @@
       document.getElementById("convLabel").textContent = convMode === 'greg' ? "Gregorian Date:" : "Gilburd Date:";
       document.getElementById("convInput").value = "";
       document.getElementById("convResult").textContent = "";
+      document.getElementById("resetButton").style.display = "none";
     }
     function convertDate() {
       const input = document.getElementById("convInput").value;
@@ -372,15 +379,48 @@
         result.textContent = "Please select a date.";
         return;
       }
+      document.querySelectorAll('.highlight').forEach(el => el.classList.remove('highlight'));
+
       if (convMode === 'greg') {
         const gDate = new Date(input);
         const gil = getGilburdDateFromGregorian(gDate);
         result.textContent = `→ Gilburd: ${gil.year}.${gil.month}.${gil.day}`;
+        currentYear = gil.year;
+        renderYear(currentYear);
+        highlightDate(gil.year, gil.month, gil.day);
       } else {
         const [y, m, d] = input.split('-').map(Number);
         const gDate = getGregorianFromGilburd({ year: y, month: m, day: d });
         result.textContent = `→ Gregorian: ${gDate.toISOString().split('T')[0]}`;
+        currentYear = y;
+        renderYear(currentYear);
+        highlightDate(y, m, d);
       }
+      document.getElementById("resetButton").style.display = "inline";
+    }
+    function highlightDate(year, month, day) {
+      const monthDiv = document.querySelectorAll('.month')[month - 1];
+      const cells = monthDiv.querySelectorAll('td');
+      cells.forEach(cell => {
+        if (cell.classList.contains('diagonal-cell')) {
+          const span30 = cell.querySelector('.day30');
+          const span31 = cell.querySelector('.day31');
+          if (day === 30) {
+            span30.classList.add('highlight');
+          } else if (day === 31) {
+            span31.classList.add('highlight');
+          }
+        } else if (cell.textContent == day) {
+          cell.classList.add('highlight');
+        }
+      });
+    }
+    function resetToCurrentDate() {
+      currentYear = today.getFullYear();
+      renderYear(currentYear);
+      document.getElementById("convInput").value = "";
+      document.getElementById("convResult").textContent = "";
+      document.getElementById("resetButton").style.display = "none";
     }
     renderYear(currentYear);
     function printCalendar() {
@@ -388,7 +428,6 @@
     }
 
     function takeScreenshot() {
-      // Hide elements that should not be included in the screenshot
       const header = document.querySelector('header');
       const converter = document.querySelector('.converter');
       const buttons = document.querySelectorAll('button');
