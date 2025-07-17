@@ -160,7 +160,6 @@
       z-index: 1000;
     }
 
-    /* New styles for diagonal split */
     .diagonal-cell {
     position: relative;
     height: 2.2vh;
@@ -210,6 +209,7 @@
     <div class="icons">
       <span class="icon" onclick="toggleDarkMode()" title="Toggle dark mode">☀</span>
       <span class="icon" onclick="toggleInfoPopup()" title="About calendar">ℹ</span>
+      <span class="icon" onclick="takeScreenshot()" title="Print Screen">⎙</span>
     </div>
   </header>
 
@@ -223,6 +223,7 @@
     <span id="infoPopup" class="info-popup" style="display:none">Gilburd's Calendar has 12 months, alternating 30 and 31 days. December has 30 days unless leap year.</span>
   </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script>
     let dark = false;
     let convMode = 'greg'; // or 'gilb'
@@ -382,6 +383,37 @@
       }
     }
     renderYear(currentYear);
+    function printCalendar() {
+      window.print();
+    }
+
+    function takeScreenshot() {
+      // Hide elements that should not be included in the screenshot
+      const header = document.querySelector('header');
+      const converter = document.querySelector('.converter');
+      const buttons = document.querySelectorAll('button');
+      const todayElements = document.querySelectorAll('.today');
+      
+      header.style.display = 'none';
+      converter.style.display = 'none';
+      buttons.forEach(button => button.style.display = 'none');
+      todayElements.forEach(el => el.classList.remove('today'));
+
+      // Take screenshot of the body
+      html2canvas(document.body).then(canvas => {
+        // Restore visibility of hidden elements
+        header.style.display = '';
+        converter.style.display = '';
+        buttons.forEach(button => button.style.display = '');
+        todayElements.forEach(el => el.classList.add('today'));
+
+        // Create a link to download the screenshot
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL();
+        link.download = 'gilburds-calendar-screenshot.png';
+        link.click();
+      });
+    }
   </script>
 </body>
 </html>
